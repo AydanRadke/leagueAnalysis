@@ -44,38 +44,68 @@ def find_team(game):
     else:
         return "BLUE"
 
+
+# This function is meant to take in either of the dictionaries we're dealing with, and get rid of the data we don't need
+def format_data(data):
+    # This is for the player data formatting:
+    new_data = {}
+    if isinstance(data, dict):
+        new_data["team_key"] = data["team_key"]
+        new_data["position"] = data["position"]
+        criteria = ['kill', 'death', 'assist', 'gold_earned', 'champion_level', 'total_damage_dealt',
+                    'total_damage_dealt_to_champions', 'vision_score', 'minion_kill']
+        for item in criteria:
+            new_data[item] = data["stats"][item]
+        new_data["laning_score"] = data["stats"]["op_score_timeline"][13]["score"]
+        return new_data
+    # This is for the team data formatting:
+    # DO THIS NEXT! NEED TO COLLECT THE NEEDED GAME DATA POINTS, AND CONTINUE
+    else:
+        pass
+
+
 # Need to add functionality with the team variable in order to properly sort these data points
-def find_game_stats(game):
+def find_game_stats(game, team):
     dictionary = game[game.find("teams") + 7: ]
     dictionary = dictionary[:dictionary.find('],"') + 1]
-    print(dictionary)
     team_stats = json.loads(dictionary)
+    #team_stats = format_data(team_stats)
+    print(team_stats)
     return team_stats
-
-def format_data(data):
-    pass
 
 
 # Need to add functionality with the team variable in order to properly sort these data points
-def find_player_stats(game):
-    player_stats = {"my_top": None, "my_jg": None, "my_mid": None, "my_adc": None, "my_sup": None,
-                    "enemy_top": None, "enemy_jg": None, "enemy_mid": None, "enemy_adc": None, "enemy_sup": None,}
+def find_player_stats(game, team):
+    player_stats = {"my_top": None, "my_jungle": None, "my_mid": None, "my_adc": None, "my_support": None,
+                    "enemy_top": None, "enemy_jungle": None, "enemy_mid": None, "enemy_adc": None, "enemy_support": None,}
     for i in range(10):
         player = "{" + game[game.find('"team_key"'): game.find('}},"') + 2] + "}"
         player = json.loads(player)
         game = game[game.find('}},"') + 2:]
-        print(player)
-        #player = format_data(player)
+        player = format_data(player)
+        # This statement sorts the data by comparing my team to the team of the player
+        # and using certain values in the dictionary. Then, it deletes the final stuff we don't need
+        if player["team_key"] == team:
+            player_stats["my_" + player["position"].lower()] = player
+            del player_stats["my_" + player["position"].lower()]["team_key"]
+            del player_stats["my_" + player["position"].lower()]["position"]
+        else:
+            player_stats["enemy_" + player["position"].lower()] = player
+            del player_stats["enemy_" + player["position"].lower()]["team_key"]
+            del player_stats["enemy_" + player["position"].lower()]["position"]
+    for stat in player_stats:
+        print(player_stats[stat])
+
 
 # This is the main data collection loop, commented out for testing
 #for game in games:
     #team = find_team(game)
     #print(team)
-    #game_stats = find_game_stats(game)
+    #game_stats = find_game_stats(game, team)
     #player_stats = find_player_stats(game, team)
     #print(game)
 
 # tests of individual functions
-print(games[0])
-find_player_stats(games[0])
-find_game_stats(games[0])
+#print(games[0])
+#find_player_stats(games[0], "RED")
+find_game_stats(games[0], "RED")
