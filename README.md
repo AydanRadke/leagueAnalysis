@@ -11,6 +11,6 @@ This is my first project I'm posting on GitHub! Also, It's my first data science
 2. I want to familiarize my self with the tools that data scientists use. Jupyter, pandas, matplotlib, etc
 3. I want to learn more about statistics and creating insights from them!
 
-# Beware, this is a poorly written beginner project, I'm just having fun!
+### Ps: this is a beginner project, I'm just having fun!
 
 
