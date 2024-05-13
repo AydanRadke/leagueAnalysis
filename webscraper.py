@@ -1,4 +1,4 @@
-# import pandas as pd
+import pandas as pd
 import json
 import requests
 import bs4
@@ -46,7 +46,7 @@ def find_team(game):
 
 
 # This function is meant to take in either of the dictionaries we're dealing with, and get rid of the data we don't need
-def format_data(data):
+def format_data(data, team=None):
     # This is for the player data formatting:
     new_data = {}
     if isinstance(data, dict):
@@ -57,27 +57,38 @@ def format_data(data):
         for item in criteria:
             new_data[item] = data["stats"][item]
         new_data["laning_score"] = data["stats"]["op_score_timeline"][13]["score"]
-        return new_data
+
     # This is for the team data formatting:
     # DO THIS NEXT! NEED TO COLLECT THE NEEDED GAME DATA POINTS, AND CONTINUE
     else:
-        pass
+        criteria = ['is_win', 'gold_earned', 'rift_herald_kill', 'rift_herald_first',
+                    'dragon_kill', 'dragon_first', 'baron_kill', 'baron_first', 'tower_kill', 'horde_kill']
+        new_data['my_team'] = {}
+        new_data['enemy_team'] = {}
+        if team == data[0]['key']:
+            for item in criteria:
+                new_data['my_team'][item] = data[0]['game_stat'][item]
+                new_data['enemy_team'][item] = data[1]['game_stat'][item]
+        else:
+            for item in criteria:
+                new_data['my_team'][item] = data[1]['game_stat'][item]
+                new_data['enemy_team'][item] = data[0]['game_stat'][item]
+    return new_data
 
 
 # Need to add functionality with the team variable in order to properly sort these data points
 def find_game_stats(game, team):
-    dictionary = game[game.find("teams") + 7: ]
+    dictionary = game[game.find("teams") + 7:]
     dictionary = dictionary[:dictionary.find('],"') + 1]
     team_stats = json.loads(dictionary)
-    #team_stats = format_data(team_stats)
-    print(team_stats)
+    team_stats = format_data(team_stats, team)
     return team_stats
 
 
 # Need to add functionality with the team variable in order to properly sort these data points
 def find_player_stats(game, team):
     player_stats = {"my_top": None, "my_jungle": None, "my_mid": None, "my_adc": None, "my_support": None,
-                    "enemy_top": None, "enemy_jungle": None, "enemy_mid": None, "enemy_adc": None, "enemy_support": None,}
+                    "enemy_top": None, "enemy_jungle": None, "enemy_mid": None, "enemy_adc": None, "enemy_support": None}
     for i in range(10):
         player = "{" + game[game.find('"team_key"'): game.find('}},"') + 2] + "}"
         player = json.loads(player)
@@ -93,19 +104,23 @@ def find_player_stats(game, team):
             player_stats["enemy_" + player["position"].lower()] = player
             del player_stats["enemy_" + player["position"].lower()]["team_key"]
             del player_stats["enemy_" + player["position"].lower()]["position"]
-    for stat in player_stats:
-        print(player_stats[stat])
+    return player_stats
 
 
-# This is the main data collection loop, commented out for testing
-#for game in games:
-    #team = find_team(game)
-    #print(team)
-    #game_stats = find_game_stats(game, team)
-    #player_stats = find_player_stats(game, team)
-    #print(game)
+# This is the FUN part! We initialize an empty dataframe, then get the needed stats from each game and put that
+# into a dataframe. After that, we concatenate into the dataframe named "df". Finally, we multiindex the
+# dataframe, so that each game's data is separated!
+df = pd.DataFrame()
+for game in games:
+    team = find_team(game)
+    game_stats = find_game_stats(game, team)
+    player_stats = find_player_stats(game, team)
+    temp_df = pd.DataFrame({**player_stats, **game_stats}).transpose()
+    df = pd.concat([df, temp_df])
 
-# tests of individual functions
-#print(games[0])
-#find_player_stats(games[0], "RED")
-find_game_stats(games[0], "RED")
+'''I'm not totally sure how this line works exactly. From my understanding (possibly incorrect), the 
+groupby(level=0).cumcount part finds gives each reoccuring index, and gives them a number. Then, the df.index part
+returns the indexes of the original dataframe. Finally, using the .set_index() we create a multiindex,
+essentially grouping each position by their number.'''
+df.set_index([df.groupby(level=0).cumcount(), df.index], inplace=True)
+print(df.to_string())
