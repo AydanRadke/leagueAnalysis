@@ -17,7 +17,6 @@ webpage.raise_for_status()
 webpage = bs4.BeautifulSoup(webpage.text, 'html.parser')
 webpage = webpage.prettify()
 
-# We get to start the fun part!!! Since we have a string, we are going to
 # Split the string up game by game, and collect the data we need to analyze
 games = []
 # Splits the long html string up game by game
@@ -46,6 +45,7 @@ def find_team(game):
 
 
 # This function is meant to take in either of the dictionaries we're dealing with, and get rid of the data we don't need
+# and return what we do. Handles player data and game data
 def format_data(data, team=None):
     # This is for the player data formatting:
     new_data = {}
@@ -59,7 +59,6 @@ def format_data(data, team=None):
         new_data["laning_score"] = data["stats"]["op_score_timeline"][13]["score"]
 
     # This is for the team data formatting:
-    # DO THIS NEXT! NEED TO COLLECT THE NEEDED GAME DATA POINTS, AND CONTINUE
     else:
         criteria = ['is_win', 'gold_earned', 'rift_herald_kill', 'rift_herald_first',
                     'dragon_kill', 'dragon_first', 'baron_kill', 'baron_first', 'tower_kill', 'horde_kill']
@@ -76,7 +75,8 @@ def format_data(data, team=None):
     return new_data
 
 
-# Need to add functionality with the team variable in order to properly sort these data points
+# This function finds the data for each team. The game is in JSON, so we use the json module to get teh data from it,
+# and then format it using the format_data function
 def find_game_stats(game, team):
     dictionary = game[game.find("teams") + 7:]
     dictionary = dictionary[:dictionary.find('],"') + 1]
@@ -85,7 +85,8 @@ def find_game_stats(game, team):
     return team_stats
 
 
-# Need to add functionality with the team variable in order to properly sort these data points
+# This function finds the data for each position in the game. Gets the json for each player, formats it, and then
+# sorts it based on position
 def find_player_stats(game, team):
     player_stats = {"my_top": None, "my_jungle": None, "my_mid": None, "my_adc": None, "my_support": None,
                     "enemy_top": None, "enemy_jungle": None, "enemy_mid": None, "enemy_adc": None, "enemy_support": None}
