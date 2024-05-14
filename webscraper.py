@@ -1,3 +1,7 @@
+"""This program webscrapes game data from a League of Legends website called op.gg. It downloads the webpage, parses
+ the html, formats the data that we want, and then exports a dataframe as a csv file. I might change this file
+ some time to add newer games into the dataframe, but collecting around the last 20 games will give a
+ sufficient sample for the purposes of this project."""
 import pandas as pd
 import json
 import requests
@@ -34,6 +38,7 @@ while True:
     if end_games_index == -1:
         break
 
+
 # Returns my team so that I can categorize by friendly and enemy stats
 def find_team(game):
     user_index = game.find(username)
@@ -50,8 +55,14 @@ def format_data(data, team=None):
     # This is for the player data formatting:
     new_data = {}
     if isinstance(data, dict):
-        new_data["team_key"] = data["team_key"]
-        new_data["position"] = data["position"]
+        # If we get a KeyError, we have a game with a different game mode than the normal one.
+        # So, we have to handle this error.
+        try:
+            new_data["team_key"] = data["team_key"]
+            new_data["position"] = data["position"]
+        except KeyError:
+            return None
+
         criteria = ['kill', 'death', 'assist', 'gold_earned', 'champion_level', 'total_damage_dealt',
                     'total_damage_dealt_to_champions', 'vision_score', 'minion_kill']
         for item in criteria:
@@ -95,6 +106,10 @@ def find_player_stats(game, team):
         player = json.loads(player)
         game = game[game.find('}},"') + 2:]
         player = format_data(player)
+        # error handler for different game modes. Refer to format_data() function to see where this comes from.
+        if player is None:
+            return None
+
         # This statement sorts the data by comparing my team to the team of the player
         # and using certain values in the dictionary. Then, it deletes the final stuff we don't need
         if player["team_key"] == team:
@@ -116,12 +131,15 @@ for game in games:
     team = find_team(game)
     game_stats = find_game_stats(game, team)
     player_stats = find_player_stats(game, team)
+# This handles the case of different game modes. Since the webscraper doesn't work for those, and they're irrelevant
+    if game_stats is None or player_stats is None:
+        continue
     temp_df = pd.DataFrame({**player_stats, **game_stats}).transpose()
     df = pd.concat([df, temp_df])
 
 '''I'm not totally sure how this line works exactly. From my understanding (possibly incorrect), the 
-groupby(level=0).cumcount part finds gives each reoccuring index, and gives them a number. Then, the df.index part
+groupby(level=0).cumcount part finds each reoccuring index and gives them a number. Then, the df.index part
 returns the indexes of the original dataframe. Finally, using the .set_index() we create a multiindex,
 essentially grouping each position by their number.'''
 df.set_index([df.groupby(level=0).cumcount(), df.index], inplace=True)
-print(df.to_string())
+df.to_csv('leaguedata.csv')
