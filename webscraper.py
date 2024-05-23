@@ -137,9 +137,11 @@ for game in games:
     temp_df = pd.DataFrame({**player_stats, **game_stats}).transpose()
     df = pd.concat([df, temp_df])
 
-'''I'm not totally sure how this line works exactly. From my understanding (possibly incorrect), the 
-groupby(level=0).cumcount part finds each reoccuring index and gives them a number. Then, the df.index part
-returns the indexes of the original dataframe. Finally, using the .set_index() we create a multiindex,
-essentially grouping each position by their number.'''
-df.set_index([df.groupby(level=0).cumcount(), df.index], inplace=True)
-df.to_csv('leaguedata.csv')
+import numpy as np
+
+df = df.reset_index().rename(columns={'index': 'role'})
+df['game_id'] = np.floor(df.reset_index()['index']/12)
+# reorder columns so game_id appears first
+df = df[['game_id'] + [col for col in df.columns if col != 'game_id']]
+df.to_csv('leaguedata.csv', index=False)
+print(df.to_string())
