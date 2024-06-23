@@ -124,8 +124,7 @@ def find_player_stats(game, team):
 
 
 # This is the FUN part! We initialize an empty dataframe, then get the needed stats from each game and put that
-# into a dataframe. After that, we concatenate into the dataframe named "df". Finally, we multiindex the
-# dataframe, so that each game's data is separated!
+# into a dataframe. After that, we concatenate into the dataframe named "df".
 df = pd.DataFrame()
 for game in games:
     team = find_team(game)
@@ -136,6 +135,12 @@ for game in games:
         continue
     temp_df = pd.DataFrame({**player_stats, **game_stats}).transpose()
     df = pd.concat([df, temp_df])
+
+# These lines open the csv of previous data and undoes the formatting we do at the end of the program.
+# This is so we can concatenate these dataframes and have more data to work with.
+league_data = pd.read_csv('leaguedata.csv').drop('game_id', axis=1)
+league_data = league_data.rename(columns={'role':'index'}).set_index('index')
+df = pd.concat([league_data, df])
 
 import numpy as np
 
